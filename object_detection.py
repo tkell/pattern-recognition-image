@@ -17,24 +17,24 @@ from skimage.measure import regionprops
 
 # Test data
 from skimage import data
-coins = data.coins()
+image_data = data.coins()
 
 # Do the math
-elevation_map = sobel(coins)
-markers = np.zeros_like(coins)
-markers[coins < 30] = 1
-markers[coins > 150] = 2
+elevation_map = sobel(image_data)
+markers = np.zeros_like(image_data)
+markers[image_data < 30] = 1
+markers[image_data > 150] = 2
 segmentation = morphology.watershed(elevation_map, markers)
 segmentation = ndimage.binary_fill_holes(segmentation - 1)
-labeled_coins, _ = ndimage.label(segmentation)
-image_label_overlay = label2rgb(labeled_coins, image=coins)
+labeled_image, _ = ndimage.label(segmentation)
+image_label_overlay = label2rgb(labeled_image, image=image_data)
 
 
 ## SO!  Out of this, I need to find the centerpoints for each of those labels.
 # Oh look.
 centroids_x = []
 centroids_y = []
-for region in regionprops(labeled_coins):
+for region in regionprops(labeled_image):
     # These were reversed for some reason?
     centroids_x.append(int(region.centroid[1]))
     centroids_y.append(int(region.centroid[0]))

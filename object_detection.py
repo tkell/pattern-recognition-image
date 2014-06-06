@@ -1,7 +1,5 @@
-
-# From here: http://scikit-image.org/docs/dev/auto_examples/applications/plot_coins_segmentation.html
-# the goal is to get the center points of the segmentation back
 import sys
+import math
 
 import matplotlib
 matplotlib.use('TkAgg') 
@@ -17,6 +15,8 @@ from skimage import morphology
 from skimage.color import label2rgb
 from skimage.measure import regionprops
 from skimage.filter import rank
+
+from skimage.feature import match_template
 
 import skimage.io as io
 from skimage import util
@@ -59,30 +59,50 @@ else:
 
 
 
+
+
 # So far, it looks like canny edge detection is the best
-# I feel like I want to turn up the edgyness of the edge detection?
-# I think I need to talk to some people about this.  Next friday!
-
-# If I take my user input and go looking for button size, can I do that?
-# I think so:  move out from the button point, find things of a certain similarity, 
-# then fuzz them out a bit
-
-# or can I tile these things / look for negative space?
-# 
-
 canny_segments = find_canny_edge_locations(image_data)
 centroids_x, centroids_y, bounds = label_and_centerpoints(canny_segments)
-plt.imshow(image_data)
-plt.scatter(centroids_x, centroids_y)
-axis = plt.gca()
 
 size_threshold = 750
+large_bounds = []
 for bounding_box in bounds:
     minr, minc, maxr, maxc = bounding_box
     if (maxr - minr) * (maxc - minc) < size_threshold:
         continue
+    else:
+        large_bounds.append(bounding_box)
+
+width_and_heights = []
+final_boxes = []
+for bounding_box in large_bounds:
+    minr, minc, maxr, maxc = bounding_box
+    width = maxc - minc
+    height = maxr - minr
+
+    # add the first one
+    if not width_and_heights:
+        width_and_heights.append((width, height))
+        continue
+
+    delta = 10
+    for test_width, test_height in width_and_heights:
+        if width > test_width - delta and width < test_width + delta:
+            width_and_heights.append((width, height))
+            final_boxes.append(bounding_box)
+            break
+print "We ended with  %d objects" % len(final_boxes)
+
+
+plt.imshow(image_data)
+axis = plt.gca()
+
+plt.scatter(centroids_x, centroids_y)
+for bounding_box in final_boxes:
+    minr, minc, maxr, maxc = bounding_box
     rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
                               fill=False, edgecolor='green', linewidth=1)
     axis.add_patch(rect)
 
-plt.show()
+plt.show()  
